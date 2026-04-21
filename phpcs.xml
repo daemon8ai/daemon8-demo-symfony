@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<ruleset name="daemon8-demo-symfony">
+    <description>PSR-12 with minor relaxations for a demo project.</description>
+
+    <file>src</file>
+    <file>tests</file>
+    <file>migrations</file>
+
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <rule ref="PSR12">
+        <exclude name="Generic.Files.LineLength"/>
+        <exclude name="PSR1.Methods.CamelCapsMethodName"/>
+    </rule>
+</ruleset>

@@ -1,0 +1,25 @@
+monolog:
+    channels: ['deprecation', 'daemon8_internal']
+
+when@dev:
+    monolog:
+        handlers:
+            main:
+                type: stream
+                path: '%kernel.logs_dir%/%kernel.environment%.log'
+                level: debug
+                channels: ['!event']
+
+when@test:
+    monolog:
+        handlers:
+            main:
+                type: fingers_crossed
+                action_level: error
+                handler: nested
+                excluded_http_codes: [404, 405]
+                channels: ['!event']
+            nested:
+                type: stream
+                path: '%kernel.logs_dir%/%kernel.environment%.log'
+                level: debug

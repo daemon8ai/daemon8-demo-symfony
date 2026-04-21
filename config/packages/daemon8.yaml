@@ -1,0 +1,22 @@
+daemon8:
+    enabled: true
+    app: daemon8-demo-symfony
+    debug: false
+    transport:
+        url: '%env(DAEMON8_URL)%'
+        timeout_ms: 2000
+    monolog:
+        enabled: true
+    watchers:
+        Daemon8\Symfony\EventSubscriber\RequestSubscriber: { enabled: true }
+        Daemon8\Symfony\EventSubscriber\ExceptionSubscriber: { enabled: true }
+        Daemon8\Symfony\EventSubscriber\CommandSubscriber: { enabled: true }
+        Daemon8\Symfony\Messenger\MessengerSubscriber: { enabled: true }
+        Daemon8\Symfony\Mailer\MailerSubscriber: { enabled: true }
+        Daemon8\Symfony\Security\SecuritySubscriber: { enabled: true }
+        Daemon8\Symfony\HttpClient\Daemon8HttpClient: { enabled: true }
+        Daemon8\Symfony\Monolog\Daemon8Handler: { enabled: true, level: info }
+        Daemon8\Symfony\Doctrine\Daemon8QueryMiddleware: { enabled: true, all: true }
+        Daemon8\Symfony\Doctrine\ModelListener: { enabled: true }
+        Daemon8\Symfony\Doctrine\MigrationListener: { enabled: true }
+        Daemon8\Symfony\EventSubscriber\CacheSubscriber: { enabled: false }

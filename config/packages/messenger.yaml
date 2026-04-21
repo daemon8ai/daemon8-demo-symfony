@@ -1,0 +1,6 @@
+framework:
+    messenger:
+        transports:
+            async: 'sync://'
+        routing:
+            App\Message\DemoMessage: async
