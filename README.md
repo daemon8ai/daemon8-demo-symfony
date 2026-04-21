@@ -25,6 +25,8 @@
 
 > **Active development.** This demo is in public alpha. Tracked work for this demo lives as [GitHub Issues](https://github.com/daemon8ai/daemon8-demo-symfony/issues); the broader roadmap is maintained on the [primary daemon8 repo](https://github.com/daemon8ai/daemon8).
 
+> **Requires the Daemon8 daemon.** This demo exercises observations against a real local daemon. Install Daemon8 from [daemon8ai/daemon8](https://github.com/daemon8ai/daemon8) before running the demo scripts — start at the [Quickstart](https://daemon8.ai/docs/quickstart) if you haven't set it up yet.
+
 # daemon8-demo-symfony
 
 A fully-wired Symfony 7 application demonstrating every `daemon8/symfony` subscriber, decorator, and listener, plus the `Daemon8TestCase` / `Daemon8WebTestCase` testing primitives. Clone, install, boot the daemon, hit a route — observations appear in real time in your Daemon8 console or over MCP.

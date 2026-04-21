@@ -41,10 +41,6 @@
         "symfony/stopwatch": "^7.1",
         "symfony/web-profiler-bundle": "^7.1"
     },
-    "repositories": [
-        { "type": "path", "url": "../../daemonai/sdks/php", "options": { "symlink": true } },
-        { "type": "path", "url": "../../daemonai/sdks/php-symfony", "options": { "symlink": true } }
-    ],
     "config": {
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true,
