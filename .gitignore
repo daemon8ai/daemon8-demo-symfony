@@ -41,6 +41,10 @@ Thumbs.db
 !/public/index.php
 !/public/favicon.ico
 !/public/robots.txt
+!/public/assets/
+!/public/assets/**
+!/public/brand/
+!/public/brand/**
 !/src/
 !/src/**
 !/templates/

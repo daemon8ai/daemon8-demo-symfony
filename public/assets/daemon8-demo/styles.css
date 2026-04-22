@@ -1,0 +1,54 @@
+/*
+ * Observation severity accents + stream entry animation. Kept separate from
+ * styles.css so the same bundle loads in the minimal stream demo view and
+ * in the full welcome layout.
+ */
+
+.observation {
+  display: block;
+  margin-bottom: var(--sl-spacing-x-small);
+  border-left: 3px solid var(--sl-color-neutral-300);
+}
+.observation[data-kind] { --dot: var(--sl-color-primary-600); }
+.observation--info { border-left-color: var(--sl-color-primary-500); }
+.observation--debug { border-left-color: var(--sl-color-neutral-400); }
+.observation--warn { border-left-color: var(--sl-color-warning-600); }
+.observation--error { border-left-color: var(--sl-color-danger-600); }
+.observation--trace { border-left-color: var(--sl-color-neutral-300); }
+
+.observation pre {
+  background: var(--sl-color-neutral-100);
+  padding: 6px 8px;
+  border-radius: var(--sl-border-radius-small);
+  font-size: 0.75rem;
+  white-space: pre;
+  overflow-x: auto;
+  margin: 6px 0 0;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.observation sl-badge + sl-badge { margin-left: 4px; }
+.observation small { color: var(--sl-color-neutral-500); font-size: 0.75rem; margin-left: auto; }
+.observation > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+@keyframes obsFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.observation.entering {
+  animation: obsFadeIn 180ms ease-out;
+}
+
+.live-panel__filters sl-badge {
+  cursor: pointer;
+  user-select: none;
+}
+.live-panel__filters sl-badge[data-active='false'] {
+  opacity: 0.35;
+}
