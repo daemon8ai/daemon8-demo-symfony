@@ -4,3 +4,4 @@ framework:
             async: 'sync://'
         routing:
             App\Message\DemoMessage: async
+            App\Message\ChaosMessage: async
