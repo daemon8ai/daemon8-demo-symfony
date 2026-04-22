@@ -30,7 +30,7 @@ final class StreamProxyController extends AbstractController
         Config $config,
         HttpClientInterface $client,
     ): Response {
-        $url = rtrim($config->baseUrl, '/') . '/api/stream';
+        $url = rtrim($config->baseUrl, '/') . '/api/stream?origins=' . urlencode('app:' . $config->appName);
 
         $headers = ['Accept' => 'text/event-stream'];
         $lastEventId = $request->headers->get('Last-Event-ID');

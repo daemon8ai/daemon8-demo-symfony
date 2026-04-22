@@ -36,11 +36,12 @@ final class HealthProxyController extends AbstractController
                     502,
                 );
             }
-            $body = json_decode($response->getContent(throw: false), true);
-            if (! is_array($body)) {
-                return new JsonResponse(['status' => 'offline', 'baseUrl' => $config->baseUrl], 502);
+            $raw = trim($response->getContent(throw: false));
+            $body = json_decode($raw, true);
+            if (is_array($body)) {
+                return new JsonResponse($body);
             }
-            return new JsonResponse($body);
+            return new JsonResponse(['status' => $raw ?: 'unknown', 'baseUrl' => $config->baseUrl]);
         } catch (\Throwable $exception) {
             return new JsonResponse(
                 ['status' => 'offline', 'baseUrl' => $config->baseUrl, 'error' => $exception->getMessage()],

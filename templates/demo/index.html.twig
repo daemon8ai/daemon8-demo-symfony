@@ -23,7 +23,8 @@
             <source media="(prefers-color-scheme: dark)" srcset="/brand/wordmark-dark.svg">
             <img src="/brand/wordmark-light.svg" alt="Daemon8" height="32">
         </picture>
-        <span class="app-header__subtitle">· Symfony demo</span>
+        <span class="app-header__subtitle">Symfony demo</span>
+        <sl-badge variant="neutral" pill>alpha</sl-badge>
     </div>
     <nav class="app-header__nav">
         <a href="https://daemon8.ai">Website</a>
@@ -41,18 +42,6 @@
 
 <sl-split-panel position="68" class="app-split" primary="start">
     <div slot="start" class="app-main">
-        <sl-alert variant="warning" open class="active-dev-alert">
-            <sl-icon slot="icon" name="cone-striped"></sl-icon>
-            <strong>Active development.</strong> Public alpha. File issues at
-            <a href="https://github.com/daemon8ai/daemon8-demo-symfony/issues">daemon8ai/daemon8-demo-symfony</a>;
-            track the broader roadmap on the <a href="https://github.com/daemon8ai/daemon8">primary repo</a>.
-        </sl-alert>
-
-        <sl-alert variant="neutral" open class="daemon-offline-alert" id="daemon-offline-alert" hidden>
-            <sl-icon slot="icon" name="plug"></sl-icon>
-            <strong>Daemon offline.</strong> Start it with <code>daemon8 serve</code> and the live panel will populate.
-        </sl-alert>
-
         <sl-tab-group placement="top" class="main-tabs">
             <sl-tab slot="nav" panel="routes">Routes</sl-tab>
             <sl-tab slot="nav" panel="console">Console</sl-tab>
@@ -145,13 +134,20 @@
                     daemon8's live observation stream.
                 </p>
 
+                {% if not scenarioKeyConfigured %}
                 <sl-alert variant="warning" open class="byok-warning">
-                    <sl-icon slot="icon" name="shield-exclamation"></sl-icon>
-                    <strong>Use a scratch key.</strong> Your key lives in the current browser
-                    session only and is relayed through this Symfony process to the provider —
-                    it never touches a third-party service. Still: don't paste a production key
-                    into a demo.
+                    <sl-icon slot="icon" name="key"></sl-icon>
+                    <strong>No API key configured.</strong> Set <code>ANTHROPIC_API_KEY</code> in your
+                    <code>.env</code> file to enable scenarios. Copy <code>.env.example</code> to
+                    <code>.env</code> if you haven't already.
                 </sl-alert>
+                {% else %}
+                <sl-alert variant="success" open class="byok-configured">
+                    <sl-icon slot="icon" name="check2-circle"></sl-icon>
+                    <strong>API key loaded from <code>.env</code>.</strong> The key stays local — it is
+                    read server-side and proxied to the provider. It never leaves this machine.
+                </sl-alert>
+                {% endif %}
 
                 <sl-card class="scenario-card">
                     <form id="scenario-form">
@@ -177,23 +173,11 @@
                             </sl-select>
                         </div>
 
-                        <sl-input
-                            type="password"
-                            name="apiKey"
-                            id="scenario-api-key"
-                            label="API key"
-                            placeholder="sk-ant-..."
-                            password-toggle
-                            help-text="Stored in this page's sessionStorage. Cleared when you close the tab."
-                            required>
-                        </sl-input>
-
                         <div class="scenario-form__actions">
-                            <sl-button variant="primary" type="submit" id="scenario-run">
+                            <sl-button variant="primary" type="submit" id="scenario-run"{% if not scenarioKeyConfigured %} disabled{% endif %}>
                                 <sl-icon slot="prefix" name="play"></sl-icon>
                                 Run scenario
                             </sl-button>
-                            <sl-button variant="default" id="scenario-clear" type="button">Clear key</sl-button>
                         </div>
                     </form>
                 </sl-card>
@@ -309,6 +293,17 @@
                 </p>
             </sl-tab-panel>
         </sl-tab-group>
+
+        <sl-details id="daemon-troubleshoot" class="daemon-troubleshoot" hidden>
+            <span slot="summary">Not seeing observations?</span>
+            <p>The daemon is expected at <code>http://127.0.0.1:9077</code>.</p>
+            <ul>
+                <li>On macOS, the <code>dev.daemon8.daemon</code> launchd agent keeps it running automatically.</li>
+                <li>Check status: <code>launchctl list | grep daemon8</code></li>
+                <li>Restart it: <code>launchctl kickstart -k gui/$(id -u)/dev.daemon8.daemon</code></li>
+                <li>Or start the daemon manually: <code>daemon8 serve</code></li>
+            </ul>
+        </sl-details>
     </div>
 
     <div slot="end" class="live-panel" id="live-panel">

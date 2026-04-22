@@ -34,6 +34,12 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 final class ScenarioController extends AbstractController
 {
+    private const PROVIDER_ENV_MAP = [
+        'anthropic' => 'ANTHROPIC_API_KEY',
+        'openai' => 'OPENAI_API_KEY',
+        'gemini' => 'GEMINI_API_KEY',
+    ];
+
     #[Route('/scenario/start', name: 'scenario_start', methods: ['POST'])]
     public function start(
         Request $request,
@@ -42,12 +48,27 @@ final class ScenarioController extends AbstractController
     ): Response {
         $body = $this->decodeBody($request);
         $provider = (string) ($body['provider'] ?? '');
-        $apiKey = (string) ($body['apiKey'] ?? '');
         $scenario = (string) ($body['scenario'] ?? 'auth-recovery');
 
-        if ($provider === '' || $apiKey === '') {
+        if ($provider === '') {
             return new JsonResponse(
-                ['error' => 'provider and apiKey are required'],
+                ['error' => 'provider is required'],
+                400,
+            );
+        }
+
+        $envVar = self::PROVIDER_ENV_MAP[strtolower($provider)] ?? null;
+        if ($envVar === null) {
+            return new JsonResponse(
+                ['error' => "unknown provider '{$provider}'"],
+                400,
+            );
+        }
+
+        $apiKey = (string) ($_ENV[$envVar] ?? getenv($envVar) ?: '');
+        if ($apiKey === '') {
+            return new JsonResponse(
+                ['error' => "No API key configured for '{$provider}'. Set {$envVar} in your .env file."],
                 400,
             );
         }

@@ -23,7 +23,7 @@ function wireHealthProbe() {
   const dot = document.getElementById('status-dot');
   const label = document.getElementById('status-label');
   const tooltip = document.getElementById('status-tooltip');
-  const offline = document.getElementById('daemon-offline-alert');
+  const troubleshoot = document.getElementById('daemon-troubleshoot');
 
   initHealthProbe({
     onStatusChange(status, detail) {
@@ -35,7 +35,7 @@ function wireHealthProbe() {
           ? 'Daemon reachable at ' + (cfg.daemonBaseUrl || '')
           : 'Daemon offline: ' + (detail?.error || 'unknown')
       );
-      if (offline) offline.hidden = status !== 'offline';
+      if (troubleshoot) troubleshoot.hidden = status !== 'offline';
     },
   });
 }

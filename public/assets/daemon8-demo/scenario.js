@@ -6,46 +6,26 @@
  * support POST. This keeps the key in the request body rather than the URL.
  */
 
-import { loadKey, saveKey, clearKey } from './byok.js';
-
 const ROLE_CHAOS = 'chaos';
 const ROLE_FIXER = 'fixer';
 
 export function initScenario() {
   const form = document.getElementById('scenario-form');
-  const apiKeyInput = document.getElementById('scenario-api-key');
   const providerSelect = document.getElementById('scenario-provider');
   const scenarioSelect = document.getElementById('scenario-select');
   const runBtn = document.getElementById('scenario-run');
-  const clearBtn = document.getElementById('scenario-clear');
   const logChaos = document.getElementById('scenario-log-chaos');
   const logFixer = document.getElementById('scenario-log-fixer');
-
-  const saved = loadKey();
-  if (saved?.apiKey) apiKeyInput.value = saved.apiKey;
-  if (saved?.provider) providerSelect.value = saved.provider;
-  if (saved?.scenario) scenarioSelect.value = saved.scenario;
-
-  clearBtn.addEventListener('click', () => {
-    apiKeyInput.value = '';
-    clearKey();
-  });
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const provider = providerSelect.value;
-    const apiKey = apiKeyInput.value.trim();
     const scenario = scenarioSelect.value;
-    if (!apiKey) {
-      appendEntry(logChaos, 'error', 'API key required');
-      return;
-    }
-    saveKey({ provider, apiKey, scenario });
     resetLog(logChaos);
     resetLog(logFixer);
     runBtn.loading = true;
     try {
-      await streamScenario({ provider, apiKey, scenario }, logChaos, logFixer);
+      await streamScenario({ provider, scenario }, logChaos, logFixer);
     } catch (err) {
       appendEntry(logChaos, 'error', err.message || String(err));
     } finally {

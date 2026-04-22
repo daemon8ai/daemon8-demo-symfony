@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="340" height="70" viewBox="0 0 340 70">
-  <rect width="340" height="70" fill="#FFFFFF"/>
+  <!-- no background — inherits from page -->
   <text x="95" y="35" fill="#0F172A" font-size="28" dominant-baseline="central" letter-spacing="0" font-family="Inconsolata, 'Roboto Mono', monospace">daemon</text>
   <g transform="translate(196, 10.5) scale(1.225)">
     <line x1="20" y1="-1.8" x2="20" y2="38" stroke="#2563EB" stroke-width="0.7" stroke-linecap="round" opacity="0.58"/>

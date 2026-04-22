@@ -34,6 +34,7 @@ final class DemoController extends AbstractController
             'daemonBaseUrl' => rtrim($daemon8Config->baseUrl, '/'),
             'routes' => self::routeInventory(),
             'consoleCommands' => self::consoleInventory(),
+            'scenarioKeyConfigured' => (getenv('ANTHROPIC_API_KEY') ?: '') !== '',
         ]);
     }
 

@@ -68,7 +68,8 @@ export class LivePanel {
   }
 
   render(observation) {
-    const kind = observation.kind || 'unknown';
+    const rawKind = observation.kind;
+    const kind = (typeof rawKind === 'object' && rawKind !== null ? rawKind.type : rawKind) || 'unknown';
     this.ensureKindFilter(kind);
     if (this.filters.size > 0 && !this.filters.has(kind)) {
       return;
@@ -82,11 +83,12 @@ export class LivePanel {
     card.className = 'observation observation--' + (observation.severity || 'info') + ' entering';
     card.setAttribute('data-kind', kind);
 
-    const capturedAt = observation.captured_at
-      ? new Date(observation.captured_at).toISOString()
+    const capturedAt = observation.timestamp_ns
+      ? new Date(observation.timestamp_ns / 1e6).toISOString()
       : new Date().toISOString();
+    const rawOrigin = observation.origin;
     const channel = observation.channel
-      || observation.origin?.kind
+      || (typeof rawOrigin === 'object' && rawOrigin !== null ? (rawOrigin.name || rawOrigin.type) : rawOrigin)
       || 'stream';
 
     card.innerHTML = `
