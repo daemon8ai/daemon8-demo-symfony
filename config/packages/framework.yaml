@@ -4,9 +4,23 @@ framework:
     handle_all_throwables: true
     php_errors:
         log: true
+
+    # Sessions on in the demo firewall so break-auth/fix-auth can
+    # invalidate/migrate the session cookie and the SecuritySubscriber
+    # has something real to observe.
     session:
-        enabled: false
+        handler_id: null
+        cookie_secure: auto
+        cookie_samesite: lax
+        storage_factory_id: session.storage.factory.native
+
+    # CSRF disabled on the demo form surface — the chaos controller
+    # accepts JSON bodies from the same-origin scenario runner, and
+    # every route is local-only. Re-enable for production clones.
+    csrf_protection: false
 
 when@test:
     framework:
         test: true
+        session:
+            storage_factory_id: session.storage.factory.mock_file

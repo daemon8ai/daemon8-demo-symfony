@@ -3,6 +3,10 @@ security:
         in_memory:
             memory:
                 users:
+                    # Pre-seeded demo user — lets the chaos scenario nuke and
+                    # then re-hydrate the security token storage. Plaintext
+                    # hasher is ONLY acceptable because this is a local demo
+                    # app and the credentials never leave the box.
                     admin:
                         password: admin
                         roles: ['ROLE_ADMIN']
@@ -13,7 +17,12 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
         main:
+            # The demo firewall is intentionally permissive: no required
+            # entry point, no access control, no CSRF protection. The chaos
+            # scenario's POST endpoints need to accept plain JSON bodies
+            # without a session token dance, and the live observation
+            # stream needs same-origin GET access to the daemon proxy.
+            # This shape is demo-only — do NOT copy to production.
             lazy: true
             provider: in_memory
-            http_basic:
-                realm: 'demo'
+            stateless: false
