@@ -4,14 +4,14 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "75f59b41290da56f0fbf0323ebe4aa4f",
+    "content-hash": "e9896d60685f4e91b4394655dfc4c1c6",
     "packages": [
         {
             "name": "daemon8/php",
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "../../daemonai/sdks/php",
+                "url": "../daemonai/sdks/php",
                 "reference": "07aa8a88a31355d025621c609b91a7b47b7bb53d"
             },
             "require": {
@@ -101,7 +101,7 @@
             "version": "dev-main",
             "dist": {
                 "type": "path",
-                "url": "../../daemonai/sdks/php-symfony",
+                "url": "../daemonai/sdks/php-symfony",
                 "reference": "553062c054d8dfa800004f1ad3dacf7eddfe84a0"
             },
             "require": {

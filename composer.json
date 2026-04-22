@@ -5,6 +5,10 @@
     "description": "Symfony 7 demo application exercising every daemon8/symfony subscriber end-to-end.",
     "minimum-stability": "dev",
     "prefer-stable": true,
+    "repositories": [
+        { "type": "path", "url": "../daemonai/sdks/php", "options": { "symlink": true } },
+        { "type": "path", "url": "../daemonai/sdks/php-symfony", "options": { "symlink": true } }
+    ],
     "require": {
         "php": ">=8.4",
         "ext-ctype": "*",
