@@ -7,7 +7,8 @@
 
 <p align="center">
   <strong>Runnable Symfony 7 reference for <code>daemon8/symfony</code>.</strong><br>
-  Every subscriber, decorator, and listener exercised end-to-end against a real daemon; <code>Daemon8TestCase</code> and <code>Daemon8WebTestCase</code> covered by canonical tests.
+  Every subscriber, middleware, and decorator exercised end-to-end against a real daemon,
+  plus a BYOK chaos/fixer loop showing two LLMs coordinating through the observation stream.
 </p>
 
 <p align="center">
@@ -25,54 +26,90 @@
 
 > **Active development.** This demo is in public alpha. Tracked work for this demo lives as [GitHub Issues](https://github.com/daemon8ai/daemon8-demo-symfony/issues); the broader roadmap is maintained on the [primary daemon8 repo](https://github.com/daemon8ai/daemon8).
 
-> **Requires the Daemon8 daemon.** This demo exercises observations against a real local daemon. Install Daemon8 from [daemon8ai/daemon8](https://github.com/daemon8ai/daemon8) before running the demo scripts — start at the [Quickstart](https://daemon8.ai/docs/quickstart) if you haven't set it up yet.
+> **Requires the Daemon8 daemon.** This demo exercises observations against a real local daemon. Install Daemon8 from [daemon8ai/daemon8](https://github.com/daemon8ai/daemon8) before running — start at the [Quickstart](https://daemon8.ai/docs/quickstart) if you haven't set it up yet.
 
 # daemon8-demo-symfony
 
-A fully-wired Symfony 7 application demonstrating every `daemon8/symfony` subscriber, decorator, and listener, plus the `Daemon8TestCase` / `Daemon8WebTestCase` testing primitives. Clone, install, boot the daemon, hit a route — observations appear in real time in your Daemon8 console or over MCP.
+A fully-wired Symfony 7 application demonstrating every `daemon8/symfony` subscriber, middleware, decorator, and listener, plus the `Daemon8TestCase` / `Daemon8WebTestCase` testing primitives and the BYOK chaos/fixer scenario. Clone, install, boot, hit a route — observations appear in real time in the welcome page's live panel, in your `daemon8 tail` stream, and over MCP.
 
 This is the reference you point at when someone asks "how do I actually use Daemon8 with Symfony?"
 
 ## Getting Started
 
+One command (`composer dev`) boots the server, the Messenger worker, and a `daemon8` tail pane in parallel via `npx concurrently`. The welcome page at `/` is the on-ramp — every route can be triggered from it while the live observation panel fills in real time.
+
 ```bash
+# 1. Prerequisites: PHP 8.4+, Composer, Node 20+ (for npx concurrently),
+#    the daemon8 binary on PATH.
+#    Daemon8:  cargo install daemon8 --features dev   (or grab a release binary)
+#    daemon8 --help   # sanity check
+
+# 2. Clone + install
 git clone https://github.com/daemon8ai/daemon8-demo-symfony
 cd daemon8-demo-symfony
 composer install
+
+# 3. Bootstrap framework state
 cp .env.example .env
 touch var/data.db
 php bin/console doctrine:migrations:migrate --no-interaction
-daemon8 serve &                           # in a separate terminal
-php -S 127.0.0.1:8000 -t public/ public/index.php
-curl -s -u admin:admin http://127.0.0.1:8000/
+
+# 4. Start everything (symfony serve + messenger:consume async + daemon8 tail)
+composer dev
+
+# 5. Open the welcome page
+open http://127.0.0.1:8000/
 ```
 
-That last `curl` fires `RequestSubscriber` + `Daemon8Handler` observations into the running daemon. Watch them arrive:
+From the welcome page:
+- Click **Try it** on any route card — the observation lights up in the right-side live panel within milliseconds.
+- Switch to **Chaos & Fixer** and paste a scratch API key to watch two LLMs coordinate a break/repair loop through daemon8's stream.
+- Switch to **Console** for copyable commands that exercise the remaining subscribers (`demo:run`, `doctrine:migrations:migrate`, `messenger:consume`, `daemon8:tour`).
+- Switch to **Profiler** to see how every observation emitted during a request is stamped with both a `correlation_id` and a `profiler_token` for WebProfiler deep-linking.
+
+## Command-line tour
 
 ```bash
-daemon8 observe --follow
+php bin/console daemon8:tour
 ```
+
+Prints the same route and subscriber inventory in the terminal, plus a footer pointing back at the web welcome.
 
 ## Demo routes
 
-Every route exercises one or more subscribers so you can verify each end-to-end. Basic auth: `admin` / `admin`.
+Every route exercises one or more subscribers so you can verify each one end-to-end.
 
-| Route             | Fires subscribers                                              |
-|-------------------|----------------------------------------------------------------|
-| `GET /`           | RequestSubscriber, SecuritySubscriber, Daemon8Handler          |
-| `GET /demo/log`   | RequestSubscriber, Daemon8Handler                              |
-| `GET /demo/throw` | RequestSubscriber, Daemon8Handler (via ErrorListener logging)  |
-| `GET /demo/query` | RequestSubscriber, Daemon8QueryMiddleware, ModelListener       |
-| `GET /demo/dispatch` | RequestSubscriber, MessengerSubscriber                      |
-| `GET /demo/http`  | RequestSubscriber, Daemon8HttpClient decorator                 |
-| `GET /demo/mail`  | RequestSubscriber, MailerSubscriber                            |
+| Route                | Fires                                                          |
+|----------------------|----------------------------------------------------------------|
+| `GET /demo/log`      | RequestSubscriber, Daemon8Handler                              |
+| `GET /demo/query`    | RequestSubscriber, Daemon8QueryMiddleware, ModelListener       |
+| `GET /demo/throw`    | RequestSubscriber, Daemon8Handler (via ErrorListener)          |
+| `GET /demo/dispatch` | RequestSubscriber, MessengerSubscriber                         |
+| `GET /demo/http`     | RequestSubscriber, Daemon8HttpClient decorator                 |
+| `GET /demo/mail`     | RequestSubscriber, MailerSubscriber                            |
 
-Console + migration observations via:
+CommandSubscriber and MigrationListener fire via console commands — see the Console tab on the welcome page or the `daemon8:tour` output.
 
-```bash
-php bin/console demo:run                                  # CommandSubscriber
-php bin/console doctrine:migrations:migrate               # MigrationListener
-```
+## Chaos & Fixer (BYOK)
+
+The welcome page's **Chaos & Fixer** tab drives a scripted loop:
+
+1. A chaos LLM picks one of the demo's failure-injection endpoints (`/demo/break-auth`, `/demo/break-job`, `/demo/break-js`) and invokes it.
+2. The corresponding Symfony subscriber captures the failure and emits a real observation to the daemon.
+3. A fixer LLM subscribes to the observation stream, reads the warning, and invokes the matching repair endpoint (`/demo/fix-auth`, `/demo/fix-job`).
+4. A second observation lands confirming the fix, and the scenario ends.
+
+Your API key stays in the current browser session, is proxied through this Symfony process to the provider via `curl` (no log surface touches it), and is never persisted. Hard caps: 60-second overall timeout, 10 tool calls per role. Typical cost per run: a few cents on Anthropic's Claude Sonnet.
+
+Anthropic is the working provider today; OpenAI and Gemini are stubs that surface a clean "coming soon" message.
+
+## Profiler integration
+
+Symfony's WebProfiler and Daemon8 are complementary. The bundle registers a `Daemon8DataCollector` that powers a profiler panel, plus a `ProfilerCorrelatingBuffer` that stamps every observation emitted during a request with both a `correlation_id` (daemon-wide, framework-agnostic) and the `profiler_token` (Symfony-only, for deep-linking).
+
+- Click an observation in the live panel → the panel embeds the profiler token → click it to jump to `/_profiler/{token}`.
+- Open `/_profiler/latest` directly and the **Daemon8** panel lists every observation from the most recent request.
+- Sensitive fields redact through VarCloner casters before they reach the HTML dumper.
 
 ## Configuration
 
@@ -94,13 +131,14 @@ daemon8:
 
 Two test cases ship from `daemon8/symfony`:
 
-- `Daemon8\Symfony\Testing\Daemon8WebTestCase` — extends `WebTestCase`, boots a real disposable daemon per test class, rebinds the DI container so observations land in the test daemon. Used in `tests/Controller/DemoControllerTest.php`.
+- `Daemon8\Symfony\Testing\Daemon8WebTestCase` — extends `WebTestCase`, boots a real disposable daemon per test class, rebinds the DI container so observations land in the test daemon. Used in `tests/Controller/DemoControllerTest.php` and `tests/Feature/ChaosControllerTest.php`.
 - `Daemon8\Symfony\Testing\Daemon8TestCase` — extends `KernelTestCase` for non-HTTP subscriber coverage. Used in `tests/Integration/SubscriberCoverageTest.php`.
 
-One-line assertion helper with two shapes:
+One-line assertion helper with three shapes:
 
 ```php
 use Daemon8\Kind;
+use Daemon8\Severity;
 use Daemon8\Symfony\Channels;
 use Daemon8\Symfony\Testing\Daemon8WebTestCase;
 
@@ -126,7 +164,7 @@ final class MyFeatureTest extends Daemon8WebTestCase
 
         // Full DSL via closure
         $this->assertDaemon8Observed(
-            fn($a) => $a->kind(Kind::Log)->severityAtLeast(Severity::Warn)->atLeastOnce(),
+            fn ($a) => $a->kind(Kind::Log)->severityAtLeast(Severity::Warn)->atLeastOnce(),
         );
     }
 }
@@ -146,10 +184,11 @@ The daemon normalises observations on the wire:
 
 1. **First-class kinds drop the channel.** `Kind::Log`, `Kind::Query`, `Kind::HttpExchange`, `Kind::Exception` always return with `channel: null` — even if the SDK sent one. Filter by `kind + text`, not `channel`.
 2. **`Kind::Custom` keeps the channel nested.** When the SDK sends `kind=Custom` with a channel, the daemon returns `kind: {type: "custom", channel: "symfony.request"}`. The `Daemon8Assertions` trait's `observationChannel()` helper normalises this for you.
+3. **`correlation_id` is the base-SDK contract.** Watchers emit it under `data.correlation_id`; `ProfilerCorrelatingBuffer` also stamps `data.profiler_token` in dev/test. The base SDK's assertion DSL accepts both, and the Symfony-specific profiler deep-link uses the token when present.
 
 ## Local development note
 
-This project uses a Composer path repository to consume `daemon8/symfony` and `daemon8/php` directly from a sibling clone of the monorepo at `../../daemonai/sdks/`. To swap to the published Packagist versions before release, see [`DEPLOY.md`](./DEPLOY.md).
+This project consumes `daemon8/symfony` and `daemon8/php` from Packagist at `@dev` stability. For local monorepo work (where changes to the SDK need to flow through instantly) the `daemon8/daemonai` sibling path repo is auto-discovered via composer's default path repository pattern. See [`DEPLOY.md`](./DEPLOY.md) for the publish-swap procedure.
 
 ## License
 

@@ -78,7 +78,18 @@
         "cs:fix": "php vendor/bin/phpcbf",
         "rector": "php vendor/bin/rector process",
         "rector:dry": "php vendor/bin/rector process --dry-run",
-        "check": ["@analyse", "@cs", "@test"]
+        "check": ["@analyse", "@cs", "@test"],
+        "tour": "@php bin/console daemon8:tour",
+        "dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "npx concurrently -c \"#93c5fd,#fdba74,#86efac\" --names=server,messenger,daemon8 --kill-others \"symfony serve\" \"php bin/console messenger:consume async -vv\" \"daemon8 tail\""
+        ]
+    },
+    "scripts-descriptions": {
+        "check": "Run static analysis, code style, and the test suite.",
+        "dev": "Boot symfony serve + messenger:consume + daemon8 tail in parallel via concurrently.",
+        "tour": "Print the interactive tour — routes, console commands, MCP tools.",
+        "test": "Run the PHPUnit suite (requires the daemon8 binary on PATH)."
     },
     "conflict": {
         "symfony/symfony": "*"
