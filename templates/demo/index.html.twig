@@ -1,19 +1,336 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ message }}</title>
-</head>
-<body>
-    <h1>{{ message }}</h1>
-    <p>Every request into this demo fires at least one daemon8 subscriber.</p>
-    <ul>
-        <li><a href="/demo/log">/demo/log</a> — LogWatcher</li>
-        <li><a href="/demo/query">/demo/query</a> — Query + ModelListener</li>
-        <li><a href="/demo/throw">/demo/throw</a> — Exception</li>
-        <li><a href="/demo/dispatch">/demo/dispatch</a> — Messenger</li>
-        <li><a href="/demo/http">/demo/http</a> — HttpClient</li>
-        <li><a href="/demo/mail">/demo/mail</a> — Mailer</li>
-    </ul>
-</body>
-</html>
+{% extends 'base.html.twig' %}
+
+{#
+    Welcome page. Mirrors the Laravel demo's IA 1:1 but frames every
+    explanation around Symfony primitives — subscribers, middleware, data
+    collectors, HttpClient decorators — and adds a Profiler tab that's
+    unique to this integration.
+
+    Two dimensions keep the page honest:
+      1. The right-side live panel shows the raw observation stream. If
+         anything clicks without the panel flashing, the subscriber is
+         misconfigured.
+      2. Every /demo/* route has a matching test in tests/Feature/. Break
+         the observation here and you break a test there.
+#}
+
+{% block title %}Daemon8 · Symfony demo{% endblock %}
+
+{% block body %}
+<header class="app-header">
+    <div class="app-header__brand">
+        <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="/brand/wordmark-dark.svg">
+            <img src="/brand/wordmark-light.svg" alt="Daemon8" height="32">
+        </picture>
+        <span class="app-header__subtitle">· Symfony demo</span>
+    </div>
+    <nav class="app-header__nav">
+        <a href="https://daemon8.ai">Website</a>
+        <a href="https://github.com/daemon8ai/daemon8">Daemon</a>
+        <a href="https://github.com/daemon8ai/daemon8-symfony">SDK</a>
+        <a href="mailto:mail@daemon8.ai">Contact</a>
+    </nav>
+    <div class="app-header__status">
+        <sl-tooltip id="status-tooltip" content="Checking daemon…">
+            <span class="status-dot status-dot--unknown" id="status-dot" aria-label="daemon status"></span>
+        </sl-tooltip>
+        <span class="status-label" id="status-label">checking…</span>
+    </div>
+</header>
+
+<sl-split-panel position="68" class="app-split" primary="start">
+    <div slot="start" class="app-main">
+        <sl-alert variant="warning" open class="active-dev-alert">
+            <sl-icon slot="icon" name="cone-striped"></sl-icon>
+            <strong>Active development.</strong> Public alpha. File issues at
+            <a href="https://github.com/daemon8ai/daemon8-demo-symfony/issues">daemon8ai/daemon8-demo-symfony</a>;
+            track the broader roadmap on the <a href="https://github.com/daemon8ai/daemon8">primary repo</a>.
+        </sl-alert>
+
+        <sl-alert variant="neutral" open class="daemon-offline-alert" id="daemon-offline-alert" hidden>
+            <sl-icon slot="icon" name="plug"></sl-icon>
+            <strong>Daemon offline.</strong> Start it with <code>daemon8 serve</code> and the live panel will populate.
+        </sl-alert>
+
+        <sl-tab-group placement="top" class="main-tabs">
+            <sl-tab slot="nav" panel="routes">Routes</sl-tab>
+            <sl-tab slot="nav" panel="console">Console</sl-tab>
+            <sl-tab slot="nav" panel="scenario">Chaos &amp; Fixer</sl-tab>
+            <sl-tab slot="nav" panel="profiler">Profiler</sl-tab>
+            <sl-tab slot="nav" panel="mcp">MCP Tools</sl-tab>
+
+            <sl-tab-panel name="routes">
+                <p class="tab-intro">
+                    Every route below exercises one or more Symfony subscribers end-to-end.
+                    Click <em>Try it</em> and watch the live panel on the right light up in
+                    milliseconds. Each route has a matching test in <code>tests/Feature/</code>.
+                </p>
+
+                <div class="route-grid">
+                    {% for route in routes %}
+                        <sl-card class="route-card">
+                            <header slot="header" class="route-card__header">
+                                <strong>{{ route.title }}</strong>
+                                <div>
+                                    {% for subscriber in route.subscribers %}
+                                        <sl-badge variant="primary" pill>{{ subscriber }}</sl-badge>
+                                    {% endfor %}
+                                </div>
+                            </header>
+
+                            <p>{{ route.blurb }}</p>
+                            <code class="route-card__path">{{ route.method }} {{ route.path }}</code>
+
+                            <sl-details summary="What daemon8 captures">
+                                <p>{{ route.fields }}</p>
+                            </sl-details>
+
+                            <div slot="footer" class="route-card__actions">
+                                <sl-button
+                                    variant="primary"
+                                    size="small"
+                                    data-try="{{ route.path }}">
+                                    Try it
+                                </sl-button>
+                                <sl-copy-button
+                                    value="curl http://127.0.0.1:8000{{ route.path }}"
+                                    copy-label="Copy curl"
+                                    success-label="Copied!"
+                                ></sl-copy-button>
+                            </div>
+                        </sl-card>
+                    {% endfor %}
+                </div>
+            </sl-tab-panel>
+
+            <sl-tab-panel name="console">
+                <p class="tab-intro">
+                    Console commands that fire specific subscribers or print the full demo
+                    surface. Copy a command and run it in the <code>server</code> pane from
+                    <code>composer dev</code> — the observations flow back into the live panel
+                    and the <code>daemon8</code> tail side-by-side.
+                </p>
+
+                <div class="cli-grid">
+                    {% for cmd in consoleCommands %}
+                        <sl-card class="cli-card">
+                            <header slot="header" class="cli-card__header">
+                                <code>{{ cmd.command }}</code>
+                                <sl-copy-button
+                                    value="{{ cmd.command }}"
+                                    copy-label="Copy"
+                                    success-label="Copied!"
+                                ></sl-copy-button>
+                            </header>
+
+                            <p>{{ cmd.blurb }}</p>
+
+                            {% if cmd.subscribers|length > 0 %}
+                                <div class="cli-card__watchers">
+                                    {% for subscriber in cmd.subscribers %}
+                                        <sl-badge variant="neutral" pill>{{ subscriber }}</sl-badge>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </sl-card>
+                    {% endfor %}
+                </div>
+            </sl-tab-panel>
+
+            <sl-tab-panel name="scenario">
+                <p class="tab-intro">
+                    Bring your own key, pick a provider, and watch a chaos LLM break something
+                    deep in the stack while a fixer LLM repairs it — both coordinating through
+                    daemon8's live observation stream.
+                </p>
+
+                <sl-alert variant="warning" open class="byok-warning">
+                    <sl-icon slot="icon" name="shield-exclamation"></sl-icon>
+                    <strong>Use a scratch key.</strong> Your key lives in the current browser
+                    session only and is relayed through this Symfony process to the provider —
+                    it never touches a third-party service. Still: don't paste a production key
+                    into a demo.
+                </sl-alert>
+
+                <sl-card class="scenario-card">
+                    <form id="scenario-form">
+                        <div class="scenario-form__row">
+                            <sl-select
+                                name="provider"
+                                label="Provider"
+                                value="anthropic"
+                                id="scenario-provider"
+                                help-text="Anthropic is the working path today. OpenAI / Gemini land later.">
+                                <sl-option value="anthropic">Anthropic (Claude)</sl-option>
+                                <sl-option value="openai">OpenAI (coming soon)</sl-option>
+                                <sl-option value="gemini">Gemini (coming soon)</sl-option>
+                            </sl-select>
+
+                            <sl-select
+                                name="scenario"
+                                label="Scenario"
+                                value="auth-recovery"
+                                id="scenario-select">
+                                <sl-option value="auth-recovery">Auth recovery (401 → refresh)</sl-option>
+                                <sl-option value="job-retry">Messenger retry (failing handler)</sl-option>
+                            </sl-select>
+                        </div>
+
+                        <sl-input
+                            type="password"
+                            name="apiKey"
+                            id="scenario-api-key"
+                            label="API key"
+                            placeholder="sk-ant-..."
+                            password-toggle
+                            help-text="Stored in this page's sessionStorage. Cleared when you close the tab."
+                            required>
+                        </sl-input>
+
+                        <div class="scenario-form__actions">
+                            <sl-button variant="primary" type="submit" id="scenario-run">
+                                <sl-icon slot="prefix" name="play"></sl-icon>
+                                Run scenario
+                            </sl-button>
+                            <sl-button variant="default" id="scenario-clear" type="button">Clear key</sl-button>
+                        </div>
+                    </form>
+                </sl-card>
+
+                <sl-split-panel position="50" class="scenario-panels">
+                    <sl-card slot="start" class="scenario-pane scenario-pane--chaos">
+                        <header slot="header">
+                            <sl-badge variant="danger" pill>chaos</sl-badge>
+                            <strong>Chaos agent</strong>
+                        </header>
+                        <div class="scenario-log" id="scenario-log-chaos">
+                            <p class="scenario-log__empty">Waiting to start…</p>
+                        </div>
+                    </sl-card>
+
+                    <sl-card slot="end" class="scenario-pane scenario-pane--fixer">
+                        <header slot="header">
+                            <sl-badge variant="success" pill>fixer</sl-badge>
+                            <strong>Fixer agent</strong>
+                        </header>
+                        <div class="scenario-log" id="scenario-log-fixer">
+                            <p class="scenario-log__empty">Waiting to start…</p>
+                        </div>
+                    </sl-card>
+                </sl-split-panel>
+            </sl-tab-panel>
+
+            <sl-tab-panel name="profiler">
+                <p class="tab-intro">
+                    Symfony's WebProfiler and Daemon8 are complementary. The bundle registers a
+                    data collector and a correlating buffer so every observation emitted during a
+                    request is stamped with both a <code>correlation_id</code> (daemon-wide) and
+                    the <code>profiler_token</code> (Symfony-local). You can jump from an
+                    observation in the live panel directly to the profiler panel that produced it.
+                </p>
+
+                <sl-card class="profiler-card">
+                    <strong>Try it:</strong>
+                    <ol>
+                        <li>Click <em>Try it</em> on any route card above.</li>
+                        <li>Open <a href="/_profiler/latest" target="_blank">/_profiler/latest</a>.</li>
+                        <li>Click the <em>Daemon8</em> panel in the profiler sidebar.</li>
+                    </ol>
+                    <p style="margin-top: var(--sl-spacing-medium)">
+                        The panel lists every observation emitted during that request,
+                        grouped by channel, with the same data the daemon received. Mutable
+                        dumps render through <code>VarCloner</code> so circular references
+                        and sensitive fields are redacted by the Daemon8 casters before they
+                        reach HTML.
+                    </p>
+                </sl-card>
+
+                <p class="tab-intro" style="margin-top: var(--sl-spacing-large)">
+                    Profiler stamping is transparent: subscribers emit plain
+                    <code>Observation</code> objects, and <code>ProfilerCorrelatingBuffer</code>
+                    decorates the default buffer to attach <code>correlation_id</code> and
+                    <code>profiler_token</code> on flush. <code>correlation_id</code> is the
+                    framework-agnostic base contract; <code>profiler_token</code> is Symfony-only
+                    metadata that lights up the deep-link.
+                </p>
+            </sl-tab-panel>
+
+            <sl-tab-panel name="mcp">
+                <p class="tab-intro">
+                    Daemon8 ships eight MCP tools so any terminal-based LLM (Claude Code, Cursor,
+                    agents) can observe and control the same runtime surface you're looking at here.
+                </p>
+
+                <sl-card class="mcp-card">
+                    <table class="mcp-table">
+                        <thead>
+                            <tr><th>Tool</th><th>Purpose</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>debug_observe</code></td>
+                                <td>Query stored observations with filters (kind, severity, origin, text, since-checkpoint).</td>
+                            </tr>
+                            <tr>
+                                <td><code>debug_subscribe</code></td>
+                                <td>Live-subscribe to the observation stream, optionally filtered.</td>
+                            </tr>
+                            <tr>
+                                <td><code>debug_checkpoint</code></td>
+                                <td>Mark a point in time; later queries can reference it for incremental reads.</td>
+                            </tr>
+                            <tr>
+                                <td><code>debug_summary</code></td>
+                                <td>Counts, error rates, active connections.</td>
+                            </tr>
+                            <tr>
+                                <td><code>debug_act</code></td>
+                                <td>Browser control: eval_js, screenshot, inject_css, navigate, list_tabs, get_perf_metrics.</td>
+                            </tr>
+                            <tr>
+                                <td><code>debug_connect</code></td>
+                                <td>Attach the daemon to a Chrome endpoint.</td>
+                            </tr>
+                            <tr>
+                                <td><code>debug_connections</code></td>
+                                <td>Inspect currently-attached data sources.</td>
+                            </tr>
+                            <tr>
+                                <td><code>debug_ingest</code></td>
+                                <td>Emit an observation from the agent's side (for coordination signals).</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </sl-card>
+
+                <p class="tab-intro" style="margin-top: var(--sl-spacing-large)">
+                    Run <code>php bin/console daemon8:tour</code> for the same inventory in your terminal.
+                </p>
+            </sl-tab-panel>
+        </sl-tab-group>
+    </div>
+
+    <div slot="end" class="live-panel" id="live-panel">
+        <header class="live-panel__header">
+            <strong>Live observations</strong>
+            <div class="live-panel__controls">
+                <sl-switch size="small" id="live-pause">pause</sl-switch>
+                <sl-button size="small" variant="default" id="live-clear">clear</sl-button>
+            </div>
+        </header>
+        <div class="live-panel__filters" id="live-filters"></div>
+        <div class="live-panel__stream" id="live-stream">
+            <div class="live-panel__empty" id="live-empty">
+                <sl-icon name="activity"></sl-icon>
+                <p>Waiting for observations. Try clicking a demo route.</p>
+            </div>
+        </div>
+    </div>
+</sl-split-panel>
+
+<footer class="app-footer">
+    <span>Daemon8 · Symfony demo · Free and open source.</span>
+    <span><a href="https://daemon8.ai">daemon8.ai</a></span>
+</footer>
+{% endblock %}

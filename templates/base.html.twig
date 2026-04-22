@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+{#
+    Base layout for every demo page. Shoelace 2.20.1 via jsDelivr CDN,
+    both light and dark stylesheets preloaded with prefers-color-scheme
+    media queries, autoloader module pulls individual components lazily
+    the first time the DOM references them.
+
+    The `__daemon8Demo` window shim is populated from Twig vars and read by
+    public/assets/daemon8-demo/app.js. Same-origin proxies at /health-proxy
+    and /api/observations-stream relay the daemon so the browser never
+    crosses CORS.
+#}
+{% set shoelaceBase = 'https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn' %}
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Daemon8 · Symfony demo{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="/brand/mark-dark.svg">
+
+    <link rel="stylesheet" media="(prefers-color-scheme:light)" href="{{ shoelaceBase }}/themes/light.css">
+    <link rel="stylesheet" media="(prefers-color-scheme:dark)"
+          href="{{ shoelaceBase }}/themes/dark.css"
+          onload="document.documentElement.classList.add('sl-theme-dark');">
+    <script type="module" src="{{ shoelaceBase }}/shoelace-autoloader.js"></script>
+
+    <link rel="stylesheet" href="/assets/styles.css">
+    <link rel="stylesheet" href="/assets/daemon8-demo/styles.css">
+
+    <script>
+        window.__daemon8Demo = {
+            daemonBaseUrl: {{ daemonBaseUrl|default('http://127.0.0.1:9077')|json_encode|raw }},
+            streamUrl: {{ (app.request.schemeAndHttpHost ~ '/api/observations-stream')|json_encode|raw }},
+            healthUrl: {{ (app.request.schemeAndHttpHost ~ '/health-proxy')|json_encode|raw }},
+            selfBaseUrl: {{ app.request.schemeAndHttpHost|json_encode|raw }}
+        };
+    </script>
+    <script type="module" src="/assets/daemon8-demo/app.js"></script>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    {% block body %}{% endblock %}
+    {% block scripts %}{% endblock %}
+</body>
+</html>
