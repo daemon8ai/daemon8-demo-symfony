@@ -15,10 +15,9 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 /**
  * Server-side proxy for the daemon's /api/stream SSE endpoint.
  *
- * The welcome page's live panel cannot EventSource directly to
- * http://127.0.0.1:9077 — browsers enforce same-origin for some network
- * paths and localhost-to-localhost CORS is a long-standing footgun. The
- * proxy relays byte-for-byte, forwarding Last-Event-ID so reconnects
+ * The welcome page's live panel cannot reliably EventSource directly to the
+ * daemon across local origins. The proxy relays byte-for-byte, forwarding
+ * Last-Event-ID so reconnects
  * resume cleanly, and sets X-Accel-Buffering: no so Nginx/Caddy in front
  * don't buffer the stream.
  */

@@ -11,10 +11,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Same-origin health probe. The browser can't reliably CORS its way to
- * http://127.0.0.1:9077/health (cross-origin + localhost quirks), so we
- * relay the request server-side. Returns the daemon's own JSON when
- * reachable, or a shaped offline payload the live panel can key off of.
+ * Same-origin health probe. The browser checks the configured daemon through
+ * this app to avoid localhost CORS edge cases.
  */
 final class HealthProxyController extends AbstractController
 {

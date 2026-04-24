@@ -29,7 +29,7 @@
 
     <script>
         window.__daemon8Demo = {
-            daemonBaseUrl: {{ daemonBaseUrl|default('http://127.0.0.1:9077')|json_encode|raw }},
+            daemonBaseUrl: {{ daemonBaseUrl|default('')|json_encode|raw }},
             streamUrl: {{ (app.request.schemeAndHttpHost ~ '/api/observations-stream')|json_encode|raw }},
             healthUrl: {{ (app.request.schemeAndHttpHost ~ '/health-proxy')|json_encode|raw }},
             selfBaseUrl: {{ app.request.schemeAndHttpHost|json_encode|raw }}

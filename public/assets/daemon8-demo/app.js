@@ -8,7 +8,7 @@ import { LivePanel } from './live-panel.js';
 import { initScenario } from './scenario.js';
 
 const cfg = window.__daemon8Demo || {};
-const streamUrl = cfg.streamUrl || 'http://127.0.0.1:9077/api/stream';
+const streamUrl = cfg.streamUrl || '/api/observations-stream';
 
 document.addEventListener('DOMContentLoaded', () => {
   wireHealthProbe();

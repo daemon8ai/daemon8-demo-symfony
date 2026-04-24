@@ -22,8 +22,8 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * HTTP surface for the BYOK chaos/fixer scenario.
  *
  * POST /scenario/start opens the SSE stream directly; the POST body
- * carries provider + apiKey + scenario, and the response body IS the
- * event stream. Sidesteps background-job orchestration — the browser
+ * carries provider + scenario, and the response body IS the event
+ * stream. Sidesteps background-job orchestration — the browser
  * reads the event stream as it arrives and pipes each frame into the
  * scenario panels.
  *
@@ -34,11 +34,8 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 final class ScenarioController extends AbstractController
 {
-    private const PROVIDER_ENV_MAP = [
-        'anthropic' => 'ANTHROPIC_API_KEY',
-        'openai' => 'OPENAI_API_KEY',
-        'gemini' => 'GEMINI_API_KEY',
-    ];
+    private const PROVIDER_KEY_ENV = 'LLM_PROVIDER_KEY';
+    private const SUPPORTED_PROVIDERS = ['anthropic', 'openai', 'gemini'];
 
     #[Route('/scenario/start', name: 'scenario_start', methods: ['POST'])]
     public function start(
@@ -57,18 +54,17 @@ final class ScenarioController extends AbstractController
             );
         }
 
-        $envVar = self::PROVIDER_ENV_MAP[strtolower($provider)] ?? null;
-        if ($envVar === null) {
+        if (! in_array(strtolower($provider), self::SUPPORTED_PROVIDERS, true)) {
             return new JsonResponse(
                 ['error' => "unknown provider '{$provider}'"],
                 400,
             );
         }
 
-        $apiKey = (string) ($_ENV[$envVar] ?? getenv($envVar) ?: '');
+        $apiKey = (string) ($_ENV[self::PROVIDER_KEY_ENV] ?? getenv(self::PROVIDER_KEY_ENV) ?: '');
         if ($apiKey === '') {
             return new JsonResponse(
-                ['error' => "No API key configured for '{$provider}'. Set {$envVar} in your .env file."],
+                ['error' => "No API key configured for '{$provider}'. Set " . self::PROVIDER_KEY_ENV . ' in your .env file.'],
                 400,
             );
         }

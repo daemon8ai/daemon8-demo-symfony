@@ -34,7 +34,7 @@ final class DemoController extends AbstractController
             'daemonBaseUrl' => rtrim($daemon8Config->baseUrl, '/'),
             'routes' => self::routeInventory(),
             'consoleCommands' => self::consoleInventory(),
-            'scenarioKeyConfigured' => (getenv('ANTHROPIC_API_KEY') ?: '') !== '',
+            'scenarioKeyConfigured' => (getenv('LLM_PROVIDER_KEY') ?: '') !== '',
         ]);
     }
 
@@ -74,17 +74,17 @@ final class DemoController extends AbstractController
     }
 
     #[Route('/demo/http', name: 'demo_http', methods: ['GET'])]
-    public function http(HttpClientInterface $client): JsonResponse
+    public function http(HttpClientInterface $client, Config $daemon8Config): JsonResponse
     {
         /*
          * The HttpClient decorator observes outbound requests. We hit a
-         * guaranteed-reachable URL (localhost to the daemon's observe
-         * endpoint) so the test can rely on the call completing. If the
-         * daemon isn't running, we still want a 200 so the test suite
+         * configured daemon endpoint so the request path follows DAEMON8_URL.
+         * If the daemon isn't running, we still want a 200 so the test suite
          * can assert on the decorator's observation alone.
          */
         try {
-            $client->request('GET', 'http://127.0.0.1:9077/api/observe?limit=1', ['timeout' => 1]);
+            $url = rtrim($daemon8Config->baseUrl, '/') . '/api/observe?limit=1';
+            $client->request('GET', $url, ['timeout' => 1]);
         } catch (\Throwable) {
             /*
              * Swallow — we only care that the decorator observed the attempt.

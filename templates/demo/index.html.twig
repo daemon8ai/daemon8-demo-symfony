@@ -137,7 +137,7 @@
                 {% if not scenarioKeyConfigured %}
                 <sl-alert variant="warning" open class="byok-warning">
                     <sl-icon slot="icon" name="key"></sl-icon>
-                    <strong>No API key configured.</strong> Set <code>ANTHROPIC_API_KEY</code> in your
+                    <strong>No API key configured.</strong> Set <code>LLM_PROVIDER_KEY</code> in your
                     <code>.env</code> file to enable scenarios. Copy <code>.env.example</code> to
                     <code>.env</code> if you haven't already.
                 </sl-alert>
@@ -296,7 +296,7 @@
 
         <sl-details id="daemon-troubleshoot" class="daemon-troubleshoot" hidden>
             <span slot="summary">Not seeing observations?</span>
-            <p>The daemon is expected at <code>http://127.0.0.1:9077</code>.</p>
+            <p>The daemon is expected at <code>{{ daemonBaseUrl }}</code>.</p>
             <ul>
                 <li>On macOS, the <code>dev.daemon8.daemon</code> launchd agent keeps it running automatically.</li>
                 <li>Check status: <code>launchctl list | grep daemon8</code></li>
