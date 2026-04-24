@@ -22,12 +22,6 @@
   <em>Free and open source. No tiers, no license keys, no phone-home.</em>
 </p>
 
----
-
-> **Active development.** This demo is in public alpha. Tracked work for this demo lives as [GitHub Issues](https://github.com/daemon8ai/daemon8-demo-symfony/issues); the broader roadmap is maintained on the [primary daemon8 repo](https://github.com/daemon8ai/daemon8).
-
-> **Requires the Daemon8 daemon.** This demo exercises observations against a real local daemon. Install Daemon8 from [daemon8ai/daemon8](https://github.com/daemon8ai/daemon8) before running — start at the [Quickstart](https://daemon8.ai/docs/quickstart) if you haven't set it up yet.
-
 # daemon8-demo-symfony
 
 A fully-wired Symfony 7 application demonstrating every `daemon8/symfony` subscriber, middleware, decorator, and listener, plus the `Daemon8TestCase` / `Daemon8WebTestCase` testing primitives and the BYOK chaos/fixer scenario. Clone, install, boot, hit a route — observations appear in real time in the welcome page's live panel, in your `daemon8 tail` stream, and over MCP.
@@ -36,34 +30,48 @@ This is the reference you point at when someone asks "how do I actually use Daem
 
 ## Getting Started
 
-One command (`composer dev`) boots the server, the Messenger worker, and a `daemon8` tail pane in parallel via `npx concurrently`. The welcome page at `/` is the on-ramp — every route can be triggered from it while the live observation panel fills in real time.
+### 1. Install Daemon8
 
 ```bash
-# 1. Prerequisites: PHP 8.4+, Composer, Node 20+ (for npx concurrently),
-#    the daemon8 binary on PATH.
-#    Daemon8:  cargo install daemon8 --features dev   (or grab a release binary)
-#    daemon8 --help   # sanity check
+cargo install daemon8 --features dev
+daemon8 --help
+curl http://127.0.0.1:9077/health
+```
 
-# 2. Clone + install
+> **Required:** Daemon8 must be installed and running before this demo can emit observations.
+
+### 2. Install the demo
+
+Requires PHP 8.4+, Composer, Node 20+, and the Symfony CLI.
+
+```bash
 git clone https://github.com/daemon8ai/daemon8-demo-symfony
 cd daemon8-demo-symfony
 composer install
-
-# 3. Bootstrap framework state
 cp .env.example .env
-touch var/data.db
+mkdir -p var && touch var/data.db
 php bin/console doctrine:migrations:migrate --no-interaction
+```
 
-# 4. Start everything (symfony serve + messenger:consume async + daemon8 tail)
+Optional: set `LLM_PROVIDER_KEY` in `.env` to enable Chaos & Fixer.
+
+### 3. Run the demo
+
+```bash
 composer dev
+```
 
-# 5. Open the welcome page
+This starts `symfony serve`, `messenger:consume async`, and `daemon8 tail`.
+
+### 4. Open the welcome page
+
+```bash
 open http://127.0.0.1:8000/
 ```
 
 From the welcome page:
 - Click **Try it** on any route card — the observation lights up in the right-side live panel within milliseconds.
-- Switch to **Chaos & Fixer** and paste a scratch API key to watch two LLMs coordinate a break/repair loop through daemon8's stream.
+- Switch to **Chaos & Fixer** after setting `LLM_PROVIDER_KEY` to watch two LLMs coordinate a break/repair loop through daemon8's stream.
 - Switch to **Console** for copyable commands that exercise the remaining subscribers (`demo:run`, `doctrine:migrations:migrate`, `messenger:consume`, `daemon8:tour`).
 - Switch to **Profiler** to see how every observation emitted during a request is stamped with both a `correlation_id` and a `profiler_token` for WebProfiler deep-linking.
 
@@ -99,7 +107,7 @@ The welcome page's **Chaos & Fixer** tab drives a scripted loop:
 3. A fixer LLM subscribes to the observation stream, reads the warning, and invokes the matching repair endpoint (`/demo/fix-auth`, `/demo/fix-job`).
 4. A second observation lands confirming the fix, and the scenario ends.
 
-Your API key stays in the current browser session, is proxied through this Symfony process to the provider via `curl` (no log surface touches it), and is never persisted. Hard caps: 60-second overall timeout, 10 tool calls per role. Typical cost per run: a few cents on Anthropic's Claude Sonnet.
+`LLM_PROVIDER_KEY` is read server-side from `.env` and proxied through this Symfony process. Hard caps: 60-second overall timeout, 10 tool calls per role.
 
 Anthropic is the working provider today; OpenAI and Gemini are stubs that surface a clean "coming soon" message.
 
@@ -173,7 +181,7 @@ final class MyFeatureTest extends Daemon8WebTestCase
 Run the tests (requires the `daemon8` binary on PATH or at `DAEMON8_BIN`):
 
 ```bash
-touch var/test.db
+mkdir -p var && touch var/test.db
 php bin/console doctrine:migrations:migrate --env=test --no-interaction
 DAEMON8_BIN=$(which daemon8) composer test
 ```
@@ -185,10 +193,6 @@ The daemon normalises observations on the wire:
 1. **First-class kinds drop the channel.** `Kind::Log`, `Kind::Query`, `Kind::HttpExchange`, `Kind::Exception` always return with `channel: null` — even if the SDK sent one. Filter by `kind + text`, not `channel`.
 2. **`Kind::Custom` keeps the channel nested.** When the SDK sends `kind=Custom` with a channel, the daemon returns `kind: {type: "custom", channel: "symfony.request"}`. The `Daemon8Assertions` trait's `observationChannel()` helper normalises this for you.
 3. **`correlation_id` is the base-SDK contract.** Watchers emit it under `data.correlation_id`; `ProfilerCorrelatingBuffer` also stamps `data.profiler_token` in dev/test. The base SDK's assertion DSL accepts both, and the Symfony-specific profiler deep-link uses the token when present.
-
-## Local development note
-
-This project consumes `daemon8/symfony` and `daemon8/php` from Packagist at `@dev` stability. For local monorepo work (where changes to the SDK need to flow through instantly) the `daemon8/daemonai` sibling path repo is auto-discovered via composer's default path repository pattern. See [`DEPLOY.md`](./DEPLOY.md) for the publish-swap procedure.
 
 ## License
 
